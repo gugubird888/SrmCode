@@ -1,19 +1,17 @@
-# Local OpenAI-compatible providers and skills setup
+# 本地 OpenAI 兼容提供者和技能设置
 
-This guide covers two common offline/local workflows:
+本指南涵盖两个常见的离线/本地工作流：
 
-1. running Claw against an OpenAI-compatible local model server such as Ollama, llama.cpp, or vLLM; and
-2. installing local skills from disk so Claw can discover them without network access.
+1. 针对 OpenAI 兼容本地模型服务器（如 Ollama、llama.cpp 或 vLLM）运行 Claw
+2. 从磁盘安装本地技能，使 Claw 无需网络即可发现它们
 
-## Claw is not Claude-only
+## Claw 不是 Claude 专用的
 
-Claw Code is a Claude-Code-shaped workflow/runtime, not a Claude-only product. It supports Anthropic directly and can target OpenAI-compatible, provider-routed, and local models depending on configuration. Non-Claude providers are supported honestly: they may require stricter tool-call and response-shape compatibility, and some slash/tool workflows can be rougher than first-party Anthropic/OpenAI paths. Provider-specific identity leaks are bugs, not intended product positioning.
+Claw Code 是一个 Claude-Code 形态的工作流/运行时，而非 Claude 专用产品。它直接支持 Anthropic，并且可以根据配置面向 OpenAI 兼容、提供者路由和本地模型。
 
-If you need the most polished daily-driver experience for a specific non-Claude model today, compare that provider’s native tools. If you need runtime/provider hackability, Claw’s OpenAI-compatible route is the intended extension path.
+## OpenAI 兼容路由基础
 
-## OpenAI-compatible routing basics
-
-Set `OPENAI_BASE_URL` to the server’s `/v1` endpoint and set `OPENAI_API_KEY` to either the required token or a harmless placeholder for local servers that expect an Authorization header. Authless local/private OpenAI-compatible servers can leave `OPENAI_API_KEY` unset. The model name must match what the server exposes.
+设置 `OPENAI_BASE_URL` 为服务器的 `/v1` 端点，并将 `OPENAI_API_KEY` 设为所需 token 或无害占位符：
 
 ```bash
 export OPENAI_BASE_URL="http://127.0.0.1:11434/v1"
@@ -21,16 +19,14 @@ export OPENAI_API_KEY="local-dev-token"
 claw --model "qwen3:latest" prompt "Reply exactly HELLO_WORLD_123"
 ```
 
-Routing notes:
+路由注意事项：
+- 使用 `openai/` 前缀进行 OpenAI 兼容网关路由
+- 对于本地服务器，优先使用服务器报告的精确模型 ID
+- 对于斜杠包含的本地 ID，使用 `local/` 前缀
 
-- Use the `openai/` prefix for OpenAI-compatible gateways when you need prefix routing to win over ambient Anthropic credentials, for example `--model "openai/gpt-4.1-mini"` with OpenRouter.
-- For local servers, prefer the exact model ID reported by the server (`qwen3:latest`, `llama3.2`, etc.). If your local gateway exposes slash-containing IDs, prefix the exact slug with `local/` so Claw routes through OpenAI-compatible transport while sending the rest verbatim, for example `--model "local/Qwen/Qwen2.5-Coder-7B-Instruct"`.
-- If you have multiple provider keys in your environment, `OPENAI_BASE_URL` plus local-looking tags such as `llama3.2` or `qwen2.5-coder:7b` selects the local OpenAI-compatible route; use `local/` for slash-containing local IDs.
-- Tool workflows need model/server support for OpenAI-compatible tool calls. Plain prompt smoke tests can pass even when slash/tool workflows still fail because the server returns an incompatible tool-call shape.
+## 原始 `/v1/chat/completions` 冒烟测试
 
-## Raw `/v1/chat/completions` smoke test
-
-Before debugging Claw, verify the local server speaks the expected wire format:
+在调试 Claw 之前，验证本地服务器是否响应预期的线格式：
 
 ```bash
 curl -sS "$OPENAI_BASE_URL/chat/completions" \
@@ -43,37 +39,31 @@ curl -sS "$OPENAI_BASE_URL/chat/completions" \
   }'
 ```
 
-Expected result: a JSON response with one assistant message containing `HELLO_WORLD_123`. If this fails, fix the local server, model name, or auth token before changing Claw settings.
+预期结果：包含一条助手消息的 JSON 响应，内容为 `HELLO_WORLD_123`。
 
 ## Ollama
 
-Start Ollama and pull a model:
+启动 Ollama 并拉取模型：
 
 ```bash
 ollama pull qwen3:latest
 ollama serve
 ```
 
-In another shell:
+在另一个 shell 中：
 
 ```bash
 export OLLAMA_HOST="http://127.0.0.1:11434"
 claw --model "qwen3:latest" prompt "Reply exactly HELLO_WORLD_123"
 ```
 
-`OLLAMA_HOST` is the preferred env var for Ollama. Claw routes all models to the local OpenAI-compatible endpoint automatically when this is set, and no API key is needed. The older `OPENAI_BASE_URL` + `OPENAI_API_KEY` workaround is also supported for existing setups.
+`OLLAMA_HOST` 是 Ollama 的首选环境变量。设置后无需 API 密钥。
 
-If Ollama is running without auth, `unset OPENAI_API_KEY` is acceptable. Use a placeholder token rather than a real cloud API key if your local server requires an Authorization header.
-
-## llama.cpp server
-
-Start a llama.cpp OpenAI-compatible server with the model name you want Claw to send:
+## llama.cpp 服务器
 
 ```bash
 llama-server -m ./models/qwen2.5-coder.gguf --host 127.0.0.1 --port 8080 --alias qwen2.5-coder
 ```
-
-Then smoke-test through Claw:
 
 ```bash
 export OPENAI_BASE_URL="http://127.0.0.1:8080/v1"
@@ -81,15 +71,11 @@ export OPENAI_API_KEY="local-dev-token"
 claw --model "qwen2.5-coder" prompt "Reply exactly HELLO_WORLD_123"
 ```
 
-## vLLM or another OpenAI-compatible server
-
-Start vLLM with an OpenAI-compatible API server:
+## vLLM 或其他 OpenAI 兼容服务器
 
 ```bash
 vllm serve Qwen/Qwen2.5-Coder-7B-Instruct --host 127.0.0.1 --port 8000
 ```
-
-Then route Claw to it:
 
 ```bash
 export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
@@ -97,11 +83,9 @@ export OPENAI_API_KEY="local-dev-token"
 claw --model "Qwen/Qwen2.5-Coder-7B-Instruct" prompt "Reply exactly HELLO_WORLD_123"
 ```
 
-## Local skills install from disk
+## 从磁盘安装本地技能
 
-Skills are discovered from Claw skill roots such as `.claw/skills/` in a workspace and `~/.claw/skills/` for user-level installs. Legacy `.codex/skills/` roots may also be scanned for compatibility, but new local Claw projects should prefer `.claw/skills/`.
-
-A skill directory should contain a `SKILL.md` file with frontmatter:
+技能目录应包含一个带有前置元数据的 `SKILL.md` 文件：
 
 ```text
 my-skill/
@@ -111,15 +95,15 @@ my-skill/
 ```markdown
 ---
 name: my-skill
-description: Explain when this skill should be used.
+description: 说明何时应使用此技能。
 ---
 
-# My Skill
+# 我的技能
 
-Instructions for the agent go here.
+Agent 的指令在此。
 ```
 
-Install a skill from a local path in the interactive REPL:
+在交互式 REPL 中安装：
 
 ```text
 /skills install /absolute/path/to/my-skill
@@ -127,25 +111,17 @@ Install a skill from a local path in the interactive REPL:
 /skills my-skill
 ```
 
-Or inspect skills from the direct CLI surface:
+离线安装检查清单：
+- 安装特定的技能目录，而非仓库根目录
+- 保持前置元数据 `name` 与用户输入的目录名一致
+- 安装后运行 `/skills list` 确认已发现的名称和源路径
+- 如果技能调用失败且报 HTTP/提供者错误，先运行 `claw doctor` 验证提供者凭证
 
-```bash
-claw skills --output-format json
-```
+## 故障排除
 
-Offline install checklist:
-
-- Install the specific skill directory, not only the repository root, unless that repository root itself contains `SKILL.md`.
-- Keep the frontmatter `name` aligned with the directory name users will type.
-- After installing, run `/skills list` or `claw skills --output-format json` to confirm the discovered name and source path.
-- If a skill invocation fails with an HTTP/provider error, the skill may have installed correctly but the current model/provider call failed. Run `claw doctor`, verify provider credentials, and try a simple prompt smoke test before reinstalling the skill.
-
-## Troubleshooting
-
-| Symptom | Check |
+| 症状 | 检查项 |
 |---|---|
-| Claw still asks for Anthropic credentials | Use an explicit OpenAI-compatible model route or remove unrelated Anthropic env vars during local smoke tests. |
-| `model not found` from local server | Use the exact model ID exposed by Ollama/llama.cpp/vLLM. |
-| Plain prompt works but tools fail | Confirm the model/server supports OpenAI-compatible tool calls and response shapes. |
-| Skill says installed but `/skills <name>` fails | Check `/skills list` for the discovered name and source; verify provider credentials separately with `claw doctor`. |
-| A local docs/log file contains secrets | Redact it before using `@path` file context or attaching it to an issue. |
+| Claw 仍然要求 Anthropic 凭证 | 使用显式的 OpenAI 兼容模型路由或移除无关的 Anthropic 环境变量 |
+| 本地服务器报 `model not found` | 使用 Ollama/llama.cpp/vLLM 暴露的精确模型 ID |
+| 纯提示词有效但工具失败 | 确认模型/服务器支持 OpenAI 兼容工具调用和响应格式 |
+| 技能显示已安装但 `/skills <name>` 失败 | 检查 `/skills list` 中的已发现名称和来源；单独验证提供者凭证 |

@@ -1,16 +1,16 @@
 # CLAUDE.md
 
-This file provides guidance to Claw Code (clawcode.dev) when working with code in this repository.
+本文件为 Claw Code (clawcode.dev) 在此仓库中工作时提供指导。
 
-## Detected stack
-- Languages: Rust.
-- Frameworks: none detected from the supported starter markers.
+## 检测到的技术栈
+- 语言：Rust。
+- 框架：从支持的启动标记中未检测到。
 
-## Verification
-- From the repository root, run Rust formatting with `scripts/fmt.sh` (or `scripts/fmt.sh --check` for CI-style checks). From this `rust/` directory, the equivalent command is `../scripts/fmt.sh`. Root-level `cargo fmt --manifest-path rust/Cargo.toml` is not the supported formatting command.
-- From this `rust/` directory, run Rust verification with `cargo clippy --workspace --all-targets -- -D warnings` and `cargo test --workspace`.
+## 验证
+- 从仓库根目录，使用 `scripts/fmt.sh` 运行 Rust 格式化（或使用 `scripts/fmt.sh --check` 进行 CI 风格检查）。从此 `rust/` 目录，等效命令是 `../scripts/fmt.sh`。根级 `cargo fmt --manifest-path rust/Cargo.toml` 不是受支持的格式化命令。
+- 从此 `rust/` 目录，使用 `cargo clippy --workspace --all-targets -- -D warnings` 和 `cargo test --workspace` 运行 Rust 验证。
 
-## Working agreement
-- Prefer small, reviewable changes and keep generated bootstrap files aligned with actual repo workflows.
-- Keep shared defaults in `.claw.json`; reserve `.claw/settings.local.json` for machine-local overrides.
-- Do not overwrite existing `CLAUDE.md` content automatically; update it intentionally when repo workflows change.
+## 工作约定
+- 倾向于小的、可审查的变更，并保持生成的引导文件与实际仓库工作流对齐。
+- 将共享默认值保留在 `.claw.json`；将 `.claw/settings.local.json` 留给本机级别的覆盖。
+- 不要自动覆盖现有的 `CLAUDE.md` 内容；仅在仓库工作流变更时有意识地更新它。

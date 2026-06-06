@@ -1,226 +1,172 @@
-# 🦞 Claw Code — Rust Implementation
+# 🦞 Claw Code — Rust 实现
 
-A high-performance Rust rewrite of the Claw Code CLI agent harness. Built for speed, safety, and native tool execution.
+Claw Code CLI agent harness 的高性能 Rust 重写。为速度、安全性和原生工具执行而构建。
 
-For a task-oriented guide with copy/paste examples, see [`../USAGE.md`](../USAGE.md).
+任务导向指南（含可复制示例）见 [`../USAGE.md`](../USAGE.md)。
 
-## Quick Start
+## 快速开始
 
 ```bash
-# Inspect available commands
+# 查看可用命令
 cd rust/
 cargo run -p rusty-claude-cli -- --help
 
-# Build the workspace
+# 构建工作区
 cargo build --workspace
 
-# Run the interactive REPL
+# 运行交互式 REPL
 cargo run -p rusty-claude-cli -- --model claude-opus-4-7
 
-# One-shot prompt
+# 一次性提示词
 cargo run -p rusty-claude-cli -- prompt "explain this codebase"
 
-# JSON output for automation
+# 自动化 JSON 输出
 cargo run -p rusty-claude-cli -- --output-format json prompt "summarize src/main.rs"
 ```
 
-## Configuration
+## 配置
 
-Set your API credentials:
+设置 API 凭证：
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
-# Or use a proxy
+# 或使用代理
 export ANTHROPIC_BASE_URL="https://your-proxy.com"
 ```
 
-Or provide an OAuth bearer token directly:
+或直接提供 OAuth bearer token：
 
 ```bash
 export ANTHROPIC_AUTH_TOKEN="anthropic-oauth-or-proxy-bearer-token"
 ```
 
-## Mock parity harness
+## Mock 对等 Harness
 
-The workspace now includes a deterministic Anthropic-compatible mock service and a clean-environment CLI harness for end-to-end parity checks.
+工作区现包含一个确定性 Anthropic 兼容 mock 服务和一个清洁环境 CLI harness，用于端到端对等检查。
 
 ```bash
 cd rust/
 
-# Run the scripted clean-environment harness
+# 运行脚本化的清洁环境 harness
 ./scripts/run_mock_parity_harness.sh
 
-# Or start the mock service manually for ad hoc CLI runs
+# 或手动启动 mock 服务
 cargo run -p mock-anthropic-service -- --bind 127.0.0.1:0
 ```
 
-Harness coverage:
+Harness 覆盖：
 
-- `streaming_text`
-- `read_file_roundtrip`
-- `grep_chunk_assembly`
-- `write_file_allowed`
-- `write_file_denied`
-- `multi_tool_turn_roundtrip`
-- `bash_stdout_roundtrip`
-- `bash_permission_prompt_approved`
-- `bash_permission_prompt_denied`
+- `streaming_text`、`read_file_roundtrip`、`grep_chunk_assembly`
+- `write_file_allowed`、`write_file_denied`
+- `multi_tool_turn_roundtrip`、`bash_stdout_roundtrip`
+- `bash_permission_prompt_approved`、`bash_permission_prompt_denied`
 - `plugin_tool_roundtrip`
 
-Primary artifacts:
+主要制品：
 
-- `crates/mock-anthropic-service/` — reusable mock Anthropic-compatible service
-- `crates/rusty-claude-cli/tests/mock_parity_harness.rs` — clean-env CLI harness
-- `scripts/run_mock_parity_harness.sh` — reproducible wrapper
-- `scripts/run_mock_parity_diff.py` — scenario checklist + PARITY mapping runner
-- `mock_parity_scenarios.json` — scenario-to-PARITY manifest
+- `crates/mock-anthropic-service/` — 可复用的 mock Anthropic 兼容服务
+- `crates/rusty-claude-cli/tests/mock_parity_harness.rs` — 清洁环境 CLI harness
+- `scripts/run_mock_parity_harness.sh` — 可重现包装器
+- `scripts/run_mock_parity_diff.py` — 场景检查清单 + PARITY 映射运行器
+- `mock_parity_scenarios.json` — 场景到 PARITY 的清单
 
-## Features
+## 功能
 
-| Feature | Status |
-|---------|--------|
-| Anthropic / OpenAI-compatible provider flows + streaming | ✅ |
-| Direct bearer-token auth via `ANTHROPIC_AUTH_TOKEN` | ✅ |
-| Interactive REPL (rustyline) | ✅ |
-| Tool system (bash, read, write, edit, grep, glob) | ✅ |
-| Web tools (search, fetch) | ✅ |
-| Sub-agent / agent surfaces | ✅ |
-| Todo tracking | ✅ |
-| Notebook editing | ✅ |
-| CLAUDE.md / CLAW.md / AGENTS.md project memory | ✅ |
-| Config file hierarchy (`.claw.json` + merged config sections) | ✅ |
-| Permission system | ✅ |
-| MCP server lifecycle + inspection | ✅ |
-| Session persistence + resume | ✅ |
-| Cost / usage / stats surfaces | ✅ |
-| Git integration | ✅ |
-| Markdown terminal rendering (ANSI) | ✅ |
-| Model aliases (opus/sonnet/haiku) | ✅ |
-| Direct CLI subcommands (`status`, `sandbox`, `agents`, `mcp`, `skills`, `doctor`) | ✅ |
-| Slash commands (including `/skills`, `/agents`, `/mcp`, `/doctor`, `/plugin`, `/subagent`) | ✅ |
-| Hooks (`/hooks`, config-backed lifecycle hooks) | ✅ |
-| Plugin management surfaces | ✅ |
-| Skills inventory / install / uninstall surfaces | ✅ |
-| Machine-readable JSON output across core CLI surfaces | ✅ |
+| 功能 | 状态 |
+|------|------|
+| Anthropic / OpenAI 兼容提供者流 + 流式传输 | ✅ |
+| 通过 `ANTHROPIC_AUTH_TOKEN` 的 Bearer token 认证 | ✅ |
+| 交互式 REPL (rustyline) | ✅ |
+| 工具系统（bash、read、write、edit、grep、glob） | ✅ |
+| Web 工具（search、fetch） | ✅ |
+| 子 agent / agent 界面 | ✅ |
+| 待办追踪 | ✅ |
+| Notebook 编辑 | ✅ |
+| CLAUDE.md / CLAW.md / AGENTS.md 项目记忆 | ✅ |
+| 配置文件层次结构（`.claw.json` + 合并配置段） | ✅ |
+| 权限系统 | ✅ |
+| MCP 服务器生命周期 + 检查 | ✅ |
+| 会话持久化 + 恢复 | ✅ |
+| 成本 / 用量 / 统计界面 | ✅ |
+| Git 集成 | ✅ |
+| Markdown 终端渲染 (ANSI) | ✅ |
+| 模型别名 (opus/sonnet/haiku) | ✅ |
+| 直接 CLI 子命令（`status`、`sandbox`、`agents`、`mcp`、`skills`、`doctor`） | ✅ |
+| 斜杠命令（含 `/skills`、`/agents`、`/mcp`、`/doctor`、`/plugin`、`/subagent`） | ✅ |
+| 钩子（`/hooks`、配置支持的生命周期钩子） | ✅ |
+| 插件管理界面 | ✅ |
+| 技能清单 / 安装 / 卸载界面 | ✅ |
+| 核心 CLI 界面的机器可读 JSON 输出 | ✅ |
 
-## Model Aliases
+## 模型别名
 
-Short names resolve to the latest model versions:
-
-| Alias | Resolves To |
-|-------|------------|
+| 别名 | 解析为 |
+|------|--------|
 | `opus` | `claude-opus-4-7` |
 | `sonnet` | `claude-sonnet-4-6` |
 | `haiku` | `claude-haiku-4-5-20251213` |
 
-## CLI Flags and Commands
-
-Representative current surface:
+## CLI 标志和命令
 
 ```text
 claw [OPTIONS] [COMMAND]
 
-Flags:
+标志：
   --model MODEL
-  --output-format text|json  (case-insensitive; CLAW_OUTPUT_FORMAT supplies the default, flags override env)
+  --output-format text|json
   --permission-mode MODE
   --cwd PATH, -C PATH, --directory PATH
   --dangerously-skip-permissions, --skip-permissions
-  --allowedTools TOOLS        canonical snake_case names or aliases; status JSON exposes allowed_tools.available/aliases
+  --allowedTools TOOLS
   --resume [SESSION.jsonl|session-id|latest]
   --version, -V
 
-Top-level commands:
+顶层命令：
   prompt <text>
-  help
-  version
-  status
-  sandbox
+  help, version, status, sandbox
   acp [serve]
-  dump-manifests
-  bootstrap-plan
-  agents
-  mcp
-  skills
-  system-prompt
-  init
+  agents, mcp, skills
+  system-prompt, init
 ```
 
-`claw acp` is a local discoverability surface for editor-first users: it reports the current ACP/Zed status without starting the runtime. As of April 16, 2026, claw-code does **not** ship an ACP/Zed daemon or JSON-RPC entrypoint yet, and `claw acp serve` is only a status alias until the real protocol surface lands. Status queries exit 0 and expose the same machine-readable contract via `--output-format json`; malformed ACP invocations exit 1 with `kind: unsupported_acp_invocation`.
-`--output-format` accepts `text` or `json` in any casing. `CLAW_OUTPUT_FORMAT=json` selects JSON as the default for non-interactive commands, explicit flags override it, repeated flags warn on stderr, and status JSON exposes `format_source`, `format_raw`, and `format_overridden`. Help and doctor output also surface `CLAW_LOG` / `RUST_LOG` as the logging environment knobs.
-`claw version --output-format json` is the provenance probe for automation: it reports full `git_sha`, derived `git_sha_short`, `is_dirty`, `branch`, `commit_date`, `commit_timestamp`, `rustc_version`, runtime `executable_path`, and `binary_provenance`; the text report is available as `human_readable` instead of a duplicate `message` field.
-`status --output-format json` reports loaded project memory files under `workspace.memory_files[]` with each file's `path`, `source` (`claude_md`, `claw_md`, `agents_md`, or scoped/rule sources), `origin`, `scope_path`, `outside_project`, `chars`, and `contributes`; `claw doctor --output-format json` includes a dedicated `memory` check. Root instruction-file priority is `CLAUDE.md`, then `CLAW.md`, then `AGENTS.md`, discovery is bounded to the current git root when present (otherwise cwd only), and all non-duplicate loaded files contribute to the rendered system prompt.
-`claw mcp --output-format json` reports partial MCP config success: valid servers remain in `servers[]` while malformed siblings appear in `invalid_servers[]`, with `total_configured`, `valid_count`, and `invalid_count` split out for automation. `status` mirrors this as `mcp_validation`, and doctor includes an `mcp validation` check.
-`status --output-format json` also reports partial hook config success under `hook_validation`: valid hook entries are retained while malformed or unknown-event siblings appear in `invalid_hooks[]`, with `valid_count`, `invalid_count`, and typed `kind` fields (`invalid_hooks_config` or `unknown_hook_event`) for automation. `doctor --output-format json` includes a `hook validation` check, and `config --output-format json` includes `hook_validation` metadata with degraded status when invalid entries exist.
-Shorthand prompt mode honors the POSIX `--` end-of-flags separator, so `claw -- "-prompt-with-dash"` and unknown dash-prefixed non-flag text stay on the prompt path instead of being treated as CLI options.
-`claw dump-manifests` is self-contained: it emits the Rust resolver inventory for the selected workspace (commands, tools, agents, skills, and bootstrap phases) without requiring an upstream Claude Code TypeScript checkout. Use `--manifests-dir PATH` only to scope resolver discovery to another directory.
-
-The command surface is moving quickly. For the canonical live help text, run:
-
-```bash
-cargo run -p rusty-claude-cli -- --help
-```
-
-## Slash Commands (REPL)
-
-Tab completion expands slash commands, model aliases, permission modes, and recent session IDs.
-
-The REPL now exposes a much broader surface than the original minimal shell:
-
-- session / visibility: `/help`, `/status`, `/sandbox`, `/cost`, `/resume`, `/session`, `/version`, `/usage`, `/stats`
-- workspace / git: `/compact`, `/clear`, `/config`, `/memory`, `/init`, `/diff`, `/commit`, `/pr`, `/issue`, `/export`, `/hooks`, `/files`, `/release-notes`
-- discovery / debugging: `/mcp`, `/agents`, `/skills`, `/doctor`, `/tasks`, `/context`, `/desktop`
-- automation / analysis: `/review`, `/advisor`, `/insights`, `/security-review`, `/subagent`, `/team`, `/telemetry`, `/providers`, `/cron`, and more
-- plugin management: `/plugin` (with aliases `/plugins`, `/marketplace`)
-
-Notable claw-first surfaces now available directly in slash form:
-- `/skills [list|show <name>|install <path>|uninstall <name>|help]`
-- `/agents [list|show <name>|create <name>|help]`
-- `/mcp [list|show <server>|help]`
-- `/doctor`
-- `/plugin [list|install <path>|enable <name>|disable <name>|uninstall <id>|update <id>]`
-- `/subagent [list|steer <target> <msg>|kill <id>]`
-
-See [`../USAGE.md`](../USAGE.md) for usage examples and run `cargo run -p rusty-claude-cli -- --help` for the live canonical command list.
-
-## Workspace Layout
+## 工作区布局
 
 ```text
 rust/
-├── Cargo.toml              # Workspace root
+├── Cargo.toml              # 工作区根
 ├── Cargo.lock
 └── crates/
-    ├── api/                # Provider clients + streaming + request preflight
-    ├── commands/           # Shared slash-command registry + help rendering
-    ├── compat-harness/     # Compatibility/parity harness utilities
-    ├── mock-anthropic-service/ # Deterministic local Anthropic-compatible mock
-    ├── plugins/            # Plugin metadata, manager, install/enable/disable surfaces
-    ├── runtime/            # Session, config, permissions, MCP, prompts, auth/runtime loop
-    ├── rusty-claude-cli/   # Main CLI binary (`claw`)
-    ├── telemetry/          # Session tracing and usage telemetry types
-    └── tools/              # Built-in tools, skill resolution, tool search, agent runtime surfaces
+    ├── api/                # 提供者客户端 + 流式传输 + 请求预检
+    ├── commands/           # 共享斜杠命令注册表 + 帮助渲染
+    ├── compat-harness/     # 兼容性/对等 harness 工具
+    ├── mock-anthropic-service/ # 确定性本地 Anthropic 兼容 mock
+    ├── plugins/            # 插件元数据、管理器、安装/启用/禁用界面
+    ├── runtime/            # 会话、配置、权限、MCP、提示词、认证/运行时循环
+    ├── rusty-claude-cli/   # 主 CLI 二进制文件 (`claw`)
+    ├── telemetry/          # 会话追踪和用量遥测类型
+    └── tools/              # 内置工具、技能解析、工具搜索、agent 运行时界面
 ```
 
-### Crate Responsibilities
+### Crate 职责
 
-- **api** — provider clients, SSE streaming, request/response types, auth (`ANTHROPIC_API_KEY` + bearer-token support), request-size/context-window preflight
-- **commands** — slash command definitions, parsing, help text generation, JSON/text command rendering
-- **compat-harness** — compatibility and parity helpers for comparing behavior with upstream fixtures
-- **mock-anthropic-service** — deterministic `/v1/messages` mock for CLI parity tests and local harness runs
-- **plugins** — plugin metadata, install/enable/disable/update flows, plugin tool definitions, hook integration surfaces
-- **runtime** — `ConversationRuntime`, config loading, session persistence, permission policy, MCP client lifecycle, system prompt assembly, usage tracking
-- **rusty-claude-cli** — REPL, one-shot prompt, direct CLI subcommands, streaming display, tool call rendering, CLI argument parsing
-- **telemetry** — session trace events and supporting telemetry payloads
-- **tools** — tool specs + execution: Bash, ReadFile, WriteFile, EditFile, GlobSearch, GrepSearch, WebSearch, WebFetch, Agent, TodoWrite, NotebookEdit, Skill, ToolSearch, and runtime-facing tool discovery
+- **api** — 提供者客户端、SSE 流式传输、请求/响应类型、认证
+- **commands** — 斜杠命令定义、解析、帮助文本生成、JSON/文本命令渲染
+- **compat-harness** — 兼容性和对等辅助工具
+- **mock-anthropic-service** — 确定性 mock 用于 CLI 对等测试
+- **plugins** — 插件元数据和生命周期管理
+- **runtime** — 会话持久化、配置加载、权限策略、MCP 客户端、系统提示词组装
+- **rusty-claude-cli** — REPL、一次性提示词、CLI 子命令、流式显示
+- **telemetry** — 会话追踪事件和遥测
+- **tools** — 工具规格和执行：Bash、文件操作、Web 搜索、Agent、Todo 等
 
-## Stats
+## 统计
 
-- **~20K lines** of Rust
-- **9 crates** in workspace
-- **Binary name:** `claw`
-- **Default model:** `claude-opus-4-7`
-- **Default permissions:** `workspace-write`
+- **约 20K 行** Rust
+- **9 个 crates** 在工作区
+- **二进制名称：** `claw`
+- **默认模型：** `claude-opus-4-7`
+- **默认权限：** `workspace-write`
 
-## License
+## 许可证
 
-See repository root.
+见仓库根目录。

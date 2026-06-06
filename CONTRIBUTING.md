@@ -1,21 +1,16 @@
-# Contributing to Claw Code
+# 为 Claw Code 做贡献
 
-Thanks for helping improve Claw Code. This repository is a Rust-first CLI
-workspace with supporting docs and compatibility fixtures.
+感谢你帮助改进 Claw Code。本仓库是一个 Rust 优先的 CLI 工作区，包含支持文档和兼容性 fixtures。
 
-## Ground rules
+## 基本规则
 
-- Keep changes small, reviewable, and tied to a concrete issue or behavior.
-- Do not commit secrets, API keys, session transcripts with credentials, or
-  generated build output.
-- Prefer existing crate boundaries and utilities before adding dependencies.
-- Update documentation when a user-facing command, config key, or provider
-  behavior changes.
-- Keep examples copy/paste safe. Use placeholder keys such as `sk-ant-...` and
-  avoid commands that require live credentials unless the text explicitly says
-  so.
+- 保持变更小而可审查，并与具体的 issue 或行为相关联。
+- 不要提交机密、API 密钥、含凭证的会话记录或生成的构建输出。
+- 倾向于使用现有的 crate 边界和工具，而不是添加新依赖。
+- 当面向用户的命令、配置键或提供者行为发生变更时，更新文档。
+- 保持示例可直接复制使用。使用占位密钥（如 `sk-ant-...`），避免使用需要真实凭证的命令，除非文本明确说明。
 
-## Local setup
+## 本地设置
 
 ```bash
 git clone https://github.com/ultraworkers/claw-code
@@ -24,8 +19,7 @@ cargo build --workspace
 cargo test --workspace
 ```
 
-On Windows PowerShell, build from the same `rust` workspace and run the binary
-with the `.exe` suffix:
+在 Windows PowerShell 上，从相同的 `rust` 工作区构建，并使用 `.exe` 后缀运行二进制文件：
 
 ```powershell
 cd claw-code\rust
@@ -33,45 +27,20 @@ cargo build --workspace
 .\target\debug\claw.exe --help
 ```
 
-## Local pre-push build gate
+## ROADMAP id 分配
 
-Install the repository-local hook to catch stale compile errors before pushing:
-
-```bash
-git config core.hooksPath .github/hooks
-```
-
-This sets the repo's Git hook directory to `.github/hooks`; if you already use a
-custom `core.hooksPath`, copy or chain `.github/hooks/pre-push` instead. The hook
-runs the ROADMAP id guard, then runs
-`cargo build --manifest-path rust/Cargo.toml --workspace --locked` from the
-repository root. If you must bypass the cargo build for a docs-only push, set
-`SKIP_CLAW_PRE_PUSH_BUILD=1`; the hook still runs the ROADMAP guard and prints
-when the cargo-build escape hatch is used.
-
-## ROADMAP id allocation
-
-Before appending a new numeric ROADMAP entry, pull/rebase onto the latest
-`main`, allocate the id from the file you are about to edit, and run the duplicate
-id guard before pushing:
+在追加新的数字 ROADMAP 条目之前，先拉取/变基到最新的 `main`，从你要编辑的文件中分配 id，并在推送前运行重复 id 检查：
 
 ```bash
 git pull --rebase
 NEXT=$(scripts/roadmap-next-id.sh)
-# append "${NEXT}. **...**" to ROADMAP.md
+# 将 "${NEXT}. **...**" 追加到 ROADMAP.md
 scripts/roadmap-check-ids.sh
 ```
 
-The duplicate guard currently checks helper-era ids (`>=723`) by default so it
-catches new optimistic-append collisions without failing on legacy numbered lists
-already present in the historical roadmap. Use `scripts/roadmap-check-ids.sh
---min-id 1` for a strict whole-file audit after those legacy collisions are
-cleaned up.
+## 创建 Pull Request 前的检查
 
-## Checks before opening a pull request
-
-Run the smallest relevant tests for your change, then the broader checks when
-you touch shared runtime, CLI, or docs surfaces:
+运行与你的变更相关的最小测试，当涉及共享的运行时、CLI 或文档层面时再运行更广泛的检查：
 
 ```bash
 cd rust
@@ -80,22 +49,13 @@ cargo test --workspace
 cargo clippy --workspace
 ```
 
-For documentation and release-readiness changes, also run:
+## Pull Request 指南
 
-```bash
-python .github/scripts/check_doc_source_of_truth.py
-python .github/scripts/check_release_readiness.py
-```
+- 描述变更面向用户的原因。
+- 列出你执行的命令以及任何已知的不足。
+- 标注 CLI 输出、JSON schema、插件契约、提供者行为或 Windows/PowerShell 示例的兼容性风险。
+- 不要将无关的清理工作混入功能或修复 PR。
 
-## Pull request guidance
+## 许可证
 
-- Describe the user-visible reason for the change.
-- List the commands you ran and any known gaps.
-- Call out compatibility risks for CLI output, JSON schemas, plugin contracts,
-  provider behavior, or Windows/PowerShell examples.
-- Keep unrelated cleanup out of feature or fix pull requests.
-
-## License
-
-By contributing, you agree that your contributions are licensed under the
-project's [MIT License](./LICENSE).
+通过贡献，你同意你的贡献以项目的 [MIT 许可证](./LICENSE) 授权。

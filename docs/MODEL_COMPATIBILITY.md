@@ -1,50 +1,28 @@
-# Model Compatibility Guide
+# 模型兼容性指南
 
-This document describes model-specific handling in the OpenAI-compatible provider. When adding new models or providers, review this guide to ensure proper compatibility.
+本文档描述 OpenAI 兼容提供者中的模型特定处理。添加新模型或提供者时，请参考本指南以确保正确兼容。
 
-## Table of Contents
+## 概述
 
-- [Overview](#overview)
-- [Model-Specific Handling](#model-specific-handling)
-  - [Kimi Models (is_error Exclusion)](#kimi-models-is_error-exclusion)
-  - [Reasoning Models (Tuning Parameter Stripping)](#reasoning-models-tuning-parameter-stripping)
-  - [GPT-5 (max_completion_tokens)](#gpt-5-max_completion_tokens)
-  - [Qwen and Kimi Models (DashScope Routing)](#qwen-and-kimi-models-dashscope-routing)
-  - [Custom Gateway Slugs and Extra Body Parameters](#custom-gateway-slugs-and-extra-body-parameters)
-- [Implementation Details](#implementation-details)
-- [Adding New Models](#adding-new-models)
-- [Testing](#testing)
+`openai_compat.rs` 提供者将 Claw Code 的内部消息格式转换为 OpenAI 兼容的聊天完成请求。不同模型对以下方面有不同的要求：
 
-## Overview
+- 工具结果消息字段（`is_error`）
+- 采样参数（temperature、top_p 等）
+- Token 限制字段（`max_tokens` vs `max_completion_tokens`）
+- 基础 URL 路由
+- 提供者特定的额外 body 参数
 
-The `openai_compat.rs` provider translates Claude Code's internal message format to OpenAI-compatible chat completion requests. Different models have varying requirements for:
+## 模型特定处理
 
-- Tool result message fields (`is_error`)
-- Sampling parameters (temperature, top_p, etc.)
-- Token limit fields (`max_tokens` vs `max_completion_tokens`)
-- Base URL routing
-- Provider-specific extra body parameters (`web_search_options`, `parallel_tool_calls`, local-server switches, etc.)
-- Provider diagnostics for status/doctor-style surfaces
+### Kimi 模型（is_error 排除）
 
-## Model-Specific Handling
+**受影响的模型：** `kimi-k2.5`、`kimi-k1.5`、`kimi-moonshot` 以及任何名称中包含 `kimi` 的模型（不区分大小写）
 
-### Kimi Models (is_error Exclusion)
+**行为：** `is_error` 字段从工具结果消息中**排除**。
 
-**Affected models:** `kimi-k2.5`, `kimi-k1.5`, `kimi-moonshot`, and any model with `kimi` in the name (case-insensitive)
+**原因：** Kimi 模型（通过 Moonshot AI 和 DashScope）会拒绝 `is_error` 字段并返回 400 Bad Request。
 
-**Behavior:** The `is_error` field is **excluded** from tool result messages.
-
-**Rationale:** Kimi models (via Moonshot AI and DashScope) reject the `is_error` field with a 400 Bad Request error:
-```json
-{
-  "error": {
-    "type": "invalid_request_error",
-    "message": "Unknown field: is_error"
-  }
-}
-```
-
-**Detection:**
+**检测：**
 ```rust
 fn model_rejects_is_error_field(model: &str) -> bool {
     let lowered = model.to_ascii_lowercase();
@@ -53,28 +31,18 @@ fn model_rejects_is_error_field(model: &str) -> bool {
 }
 ```
 
-**Testing:** See `model_rejects_is_error_field_detects_kimi_models` and related tests in `openai_compat.rs`.
+### 推理模型（调优参数剥离）
 
----
+**受影响的模型：**
+- OpenAI：`o1`、`o1-*`、`o3`、`o3-*`、`o4`、`o4-*`
+- xAI：`grok-3-mini`
+- 阿里云 DashScope：`qwen-qwq-*`、`qwq-*`、`qwen3-*-thinking`
 
-### Reasoning Models (Tuning Parameter Stripping)
+**行为：** 从请求中**剥离**以下调优参数：`temperature`、`top_p`、`frequency_penalty`、`presence_penalty`
 
-**Affected models:**
-- OpenAI: `o1`, `o1-*`, `o3`, `o3-*`, `o4`, `o4-*`
-- xAI: `grok-3-mini`
-- Alibaba DashScope: `qwen-qwq-*`, `qwq-*`, `qwen3-*-thinking`
+**原因：** 推理/思维链模型使用固定采样策略，会拒绝这些参数并返回 400 错误。
 
-**Behavior:** The following tuning parameters are **stripped** from requests:
-- `temperature`
-- `top_p`
-- `frequency_penalty`
-- `presence_penalty`
-
-**Rationale:** Reasoning/chain-of-thought models use fixed sampling strategies and reject these parameters with 400 errors.
-
-**Exception:** `reasoning_effort` is included for compatible models when explicitly set.
-
-**Detection:**
+**检测：**
 ```rust
 fn is_reasoning_model(model: &str) -> bool {
     let canonical = model.to_ascii_lowercase()
@@ -91,91 +59,50 @@ fn is_reasoning_model(model: &str) -> bool {
 }
 ```
 
-**Testing:** See `reasoning_model_strips_tuning_params`, `grok_3_mini_is_reasoning_model`, and `qwen_reasoning_variants_are_detected` tests.
+### GPT-5（max_completion_tokens）
 
----
+**受影响的模型：** 所有以 `gpt-5` 开头的模型
 
-### GPT-5 (max_completion_tokens)
+**行为：** 在请求负载中使用 `max_completion_tokens` 而非 `max_tokens`。
 
-**Affected models:** All models starting with `gpt-5`
+**原因：** GPT-5 模型需要 `max_completion_tokens` 字段。使用旧版 `max_tokens` 会导致请求验证失败。
 
-**Behavior:** Uses `max_completion_tokens` instead of `max_tokens` in the request payload.
+### Qwen 和 Kimi 模型（DashScope 路由）
 
-**Rationale:** GPT-5 models require the `max_completion_tokens` field. Legacy `max_tokens` causes request validation failures:
-```json
-{
-  "error": {
-    "message": "Unknown field: max_tokens"
-  }
-}
-```
+**受影响的模型：** 所有带有 `qwen` 或 `kimi` 前缀的模型
 
-**Implementation:**
-```rust
-let max_tokens_key = if wire_model.starts_with("gpt-5") {
-    "max_completion_tokens"
-} else {
-    "max_tokens"
-};
-```
+**行为：** 路由到 DashScope（`https://dashscope.aliyuncs.com/compatible-mode/v1`），而非其他提供者。已知路由前缀在发送前被剥离。
 
-**Testing:** See `gpt5_uses_max_completion_tokens_not_max_tokens` and `non_gpt5_uses_max_tokens` tests.
+**认证：** 使用 `DASHSCOPE_API_KEY` 环境变量。
 
----
+### 自定义网关 Slugs 和额外 Body 参数
 
-### Qwen and Kimi Models (DashScope Routing)
+**受影响的模型：** 通过 OpenAI 兼容提供者路由的斜杠包含的模型 ID，尤其是配置了 `OPENAI_BASE_URL` 的自定义网关（如 OpenRouter）。
 
-**Affected models:** All models with `qwen` or `kimi` prefixes, including `qwen/`, `qwen-`, `kimi/`, and `kimi-` forms.
+**行为：**
+- 默认 OpenAI API 和本地 OpenAI 兼容基础 URL 将 `openai/` 视为路由前缀，在线路上发送裸模型名称。
+- 非本地自定义 OpenAI 兼容基础 URL 保留斜杠包含的 slugs（如 `openai/gpt-4.1-mini`）。
+- `MessageRequest::extra_body` 在核心字段填充后透传自定义请求 JSON。
+- 受保护的核心字段（`model`、`messages`、`stream`、`tools`、`tool_choice`、`max_tokens`、`max_completion_tokens`）不能通过 `extra_body` 覆盖。
 
-**Behavior:** Routed to DashScope (`https://dashscope.aliyuncs.com/compatible-mode/v1`) rather than ambient-credential fallback providers. Known routing prefixes are stripped before sending the wire model.
+## 实现细节
 
-**Rationale:** Qwen and Kimi compatible-mode models are hosted through Alibaba Cloud's DashScope service, not OpenAI or Anthropic.
+### 文件位置
+所有模型特定逻辑位于：`rust/crates/api/src/providers/openai_compat.rs`
 
-**Configuration:**
-```rust
-pub const DEFAULT_DASHSCOPE_BASE_URL: &str = "https://dashscope.aliyuncs.com/compatible-mode/v1";
-```
+### 关键函数
 
-**Authentication:** Uses `DASHSCOPE_API_KEY` environment variable.
+| 函数 | 用途 |
+|------|------|
+| `model_rejects_is_error_field()` | 检测不支持工具结果中 `is_error` 的模型 |
+| `is_reasoning_model()` | 检测需要调优参数剥离的推理模型 |
+| `translate_message()` | 将内部消息转换为 OpenAI 格式 |
+| `build_chat_completion_request()` | 构建完整请求负载 |
+| `provider_diagnostics_for_model()` | 产生提供者/状态诊断信息 |
 
-**Note:** Some Qwen models are also reasoning models (see [Reasoning Models](#reasoning-models-tuning-parameter-stripping) above) and receive both treatments.
+### 提供者前缀处理
 
-
----
-
-### Custom Gateway Slugs and Extra Body Parameters
-
-**Affected models:** Slash-containing model IDs routed through the OpenAI-compatible provider, especially custom gateways configured with `OPENAI_BASE_URL` such as OpenRouter, local routers, or other `/v1/chat/completions` services.
-
-**Behavior:**
-- The default OpenAI API and local/private OpenAI-compatible base URLs treat `openai/` as a routing prefix and send the bare model name on the wire.
-- Non-local custom OpenAI-compatible base URLs preserve slash-containing slugs such as `openai/gpt-4.1-mini` so gateways like OpenRouter receive the exact model ID they expect. Local slash-containing model IDs can use `local/`, which strips only that escape-hatch prefix and sends the remainder verbatim.
-- `MessageRequest::extra_body` passes through custom request JSON after core fields are populated. This supports provider-specific options such as `web_search_options` and `parallel_tool_calls`.
-- Protected core fields (`model`, `messages`, `stream`, `tools`, `tool_choice`, `max_tokens`, `max_completion_tokens`) cannot be overridden through `extra_body`.
-
-**Testing:** See `custom_openai_gateway_preserves_slash_model_ids_and_extra_body_params` in `openai_compat_integration.rs`, `wire_model_strips_openai_prefix_for_default_and_local_preserves_custom_gateways`, `local_routing_prefix_strips_only_escape_hatch`, and `extra_body_params_are_passed_through_without_overriding_core_fields` in `openai_compat.rs`.
-
-## Implementation Details
-
-### File Location
-All model-specific logic is in:
-```
-rust/crates/api/src/providers/openai_compat.rs
-```
-
-### Key Functions
-
-| Function | Purpose |
-|----------|---------|
-| `model_rejects_is_error_field()` | Detects models that don't support `is_error` in tool results |
-| `is_reasoning_model()` | Detects reasoning models that need tuning param stripping |
-| `translate_message()` | Converts internal messages to OpenAI format (applies `is_error` logic) |
-| `build_chat_completion_request()` | Constructs full request payload (applies all model-specific logic and safe `extra_body` passthrough) |
-| `provider_diagnostics_for_model()` | Produces provider/status diagnostics including auth/base-url vars, reasoning behavior, proxy support, extra-body support, and slash-model preservation |
-
-### Provider Prefix Handling
-
-All model detection functions strip provider prefixes (e.g., `dashscope/kimi-k2.5` → `kimi-k2.5`) before matching:
+所有模型检测函数在匹配前剥离提供者前缀：
 
 ```rust
 let canonical = model.to_ascii_lowercase()
@@ -184,78 +111,33 @@ let canonical = model.to_ascii_lowercase()
     .unwrap_or(model);
 ```
 
-This ensures consistent detection regardless of whether models are referenced with or without provider prefixes. Wire-model handling is more specific: known routing prefixes are stripped for provider-native defaults, while custom OpenAI-compatible base URLs preserve slash-containing gateway slugs.
+## 添加新模型
 
-## Adding New Models
+添加新模型支持时：
 
-When adding support for new models:
+1. **检查是否为推理模型** — 是否拒绝 temperature/top_p 参数？添加到 `is_reasoning_model()` 检测
+2. **检查工具结果兼容性** — 是否拒绝 `is_error` 字段？添加到 `model_rejects_is_error_field()`
+3. **检查 token 限制字段** — 是否需要 `max_completion_tokens`？更新 `max_tokens_key` 逻辑
+4. **检查自定义网关行为** — 是否应保留斜杠包含的 ID？
+5. **添加测试** — 检测函数的单元测试 + 集成测试
+6. **更新本文档** — 将模型添加到受影响列表
 
-1. **Check if the model is a reasoning model**
-   - Does it reject temperature/top_p parameters?
-   - Add to `is_reasoning_model()` detection
+## 测试
 
-2. **Check tool result compatibility**
-   - Does it reject the `is_error` field?
-   - Add to `model_rejects_is_error_field()` detection
-
-3. **Check token limit field**
-   - Does it require `max_completion_tokens` instead of `max_tokens`?
-   - Update the `max_tokens_key` logic
-
-4. **Check custom gateway behavior**
-   - Should slash-containing IDs be preserved for custom `OPENAI_BASE_URL` gateways?
-   - Does the feature belong in a typed request field or `extra_body` passthrough?
-
-5. **Add tests**
-   - Unit test for detection function
-   - Integration test in `build_chat_completion_request`
-
-6. **Update this documentation**
-   - Add the model to the affected lists
-   - Document any special behavior
-
-## Testing
-
-### Running Model-Specific Tests
+### 运行模型特定测试
 
 ```bash
-# All OpenAI compatibility tests
 cargo test --package api providers::openai_compat
-
-# Specific test categories
 cargo test --package api model_rejects_is_error_field
 cargo test --package api reasoning_model
 cargo test --package api gpt5
-cargo test --package api qwen
-cargo test --package api custom_openai_gateway_preserves_slash_model_ids_and_extra_body_params
-cargo test --package api provider_diagnostics_explain_openai_compatible_capabilities
 ```
 
-### Test Files
+### 测试文件
 
-- Unit tests: `rust/crates/api/src/providers/openai_compat.rs` (in `mod tests`)
-- Integration tests: `rust/crates/api/tests/openai_compat_integration.rs`
-
-### Verifying Model Detection
-
-To verify a model is detected correctly without making API calls:
-
-```rust
-#[test]
-fn my_new_model_is_detected() {
-    // is_error handling
-    assert!(model_rejects_is_error_field("my-model"));
-    
-    // Reasoning model detection
-    assert!(is_reasoning_model("my-model"));
-    
-    // Provider prefix handling
-    assert!(model_rejects_is_error_field("provider/my-model"));
-}
-```
+- 单元测试：`rust/crates/api/src/providers/openai_compat.rs`
+- 集成测试：`rust/crates/api/tests/openai_compat_integration.rs`
 
 ---
 
-*Last updated: 2026-05-15*
-
-For questions or updates, see the implementation in `rust/crates/api/src/providers/openai_compat.rs`.
+*最后更新：2026-05-15*

@@ -1,49 +1,38 @@
-# Security Policy
+# 安全策略
 
-## Supported versions
+## 支持的版本
 
-Security fixes target the current `main` branch and the latest published
-release artifacts when available. Older experimental branches are not supported
-unless a maintainer explicitly marks them as supported.
+安全修复针对当前的 `main` 分支和最新发布的版本制品（如有）。较旧的实验性分支不受支持，除非维护者明确标记为支持。
 
-## Reporting a vulnerability
+## 报告漏洞
 
-Please do **not** open a public issue for a suspected vulnerability. Use GitHub
-private vulnerability reporting for `ultraworkers/claw-code` when available, or
-contact a maintainer through the repository's published support channel with a
-minimal, non-destructive reproduction.
+请**不要**为疑似漏洞创建公开 issue。使用 GitHub 的私有漏洞报告功能（如可用），或通过仓库公开的支持渠道联系维护者，提供最小化、无破坏性的复现步骤。
 
-Include:
+包含以下信息：
 
-- affected command, crate, or workflow;
-- operating system and shell, especially for Windows/PowerShell path issues;
-- whether live credentials, MCP servers, plugins, or workspace filesystem
-  access are involved;
-- expected impact and any safe proof-of-concept steps.
+- 受影响的命令、crate 或工作流；
+- 操作系统和 shell，特别是 Windows/PowerShell 路径问题；
+- 是否涉及真实凭证、MCP 服务器、插件或工作区文件系统访问；
+- 预期影响以及任何安全的概念验证步骤。
 
-Do not include real API keys, private prompts, session transcripts with secrets,
-or exploit payloads that modify third-party systems.
+不要包含真实的 API 密钥、私有提示词、含有机密的会话记录，或修改第三方系统的漏洞载荷。
 
-## Scope
+## 范围
 
-In scope:
+在范围内：
 
-- workspace path traversal or symlink escapes;
-- permission bypasses, sandbox misreporting, or unsafe tool execution;
-- credential disclosure in logs, JSON output, telemetry, docs, or examples;
-- plugin, hook, MCP, provider, or config behavior that can unexpectedly execute
-  code or leak secrets.
+- 工作区路径遍历或符号链接逃逸；
+- 权限绕过、沙箱误报或不安全的工具执行；
+- 日志、JSON 输出、遥测、文档或示例中的凭证泄露；
+- 可能导致意外代码执行或泄露机密的插件、钩子、MCP、提供者或配置行为。
 
-Out of scope:
+不在范围内：
 
-- social engineering;
-- denial-of-service without a practical security impact;
-- issues that require already-compromised local developer credentials;
-- reports against third-party providers or upstream tools without a Claw Code
-  integration issue.
+- 社会工程学；
+- 无实际安全影响的拒绝服务；
+- 需要已泄露的本地开发者凭证的问题；
+- 针对第三方提供者或上游工具且不涉及 Claw Code 集成问题的报告。
 
-## Handling expectations
+## 处理预期
 
-Maintainers will acknowledge valid private reports as soon as practical, keep
-discussion private until a fix or mitigation is available, and credit reporters
-when requested and appropriate.
+维护者将尽快确认有效的私有报告，在修复或缓解措施可用之前保持讨论私密，并在需要且适当时致谢报告者。

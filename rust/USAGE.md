@@ -1,11 +1,11 @@
-# Rust usage guide
+# Rust 使用指南
 
-The canonical task-oriented usage guide lives at [`../USAGE.md`](../USAGE.md).
+规范的任务导向使用指南位于 [`../USAGE.md`](../USAGE.md)。
 
-Use that guide for:
+使用该指南了解：
 
-- workspace build and test commands
-- authentication setup
-- interactive and one-shot `claw` examples
-- session resume workflows
-- mock parity harness commands
+- 工作区构建和测试命令
+- 认证设置
+- 交互式和一次性 `claw` 示例
+- 会话恢复工作流
+- mock 对等 harness 命令

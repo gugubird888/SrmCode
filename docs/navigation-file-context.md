@@ -1,69 +1,41 @@
-# Navigation and file context guide
+# 导航和文件上下文指南
 
-This guide answers the common “how do I browse output?” and “how do I submit a file?” questions for Claw Code. Claw is an agent CLI, not a full file manager: terminal navigation comes from your shell or terminal, while file context is passed explicitly in prompts.
+本指南回答 Claw Code 常见的"如何浏览输出？"和"如何提交文件？"问题。Claw 是一个 agent CLI，而非完整的文件管理器：终端导航来自你的 shell 或终端，而文件上下文通过提示词显式传递。
 
-## Prompt and terminal navigation
+## 提示词和终端导航
 
-Use your terminal’s normal controls for command history and long output:
+使用终端的常规控件进行命令历史和长输出：
 
-- `Up` / `Down` usually move through shell or REPL prompt history.
-- `Ctrl-r` searches shell history in most shells.
-- Long command output is viewed with your terminal scrollback. In tmux, enter copy mode with `Ctrl-b [` then use arrows, PageUp/PageDown, search, or your mouse depending on tmux config.
-- If output is too large to scroll comfortably, redirect it to a file and give that file to Claw as context:
+- `上` / `下` 键通常移动 shell 或 REPL 提示词历史。
+- `Ctrl-r` 在大多数 shell 中搜索 shell 历史。
+- 长命令输出通过终端滚动回看查看。在 tmux 中，按 `Ctrl-b [` 进入复制模式，然后使用方向键、PageUp/PageDown、搜索或鼠标。
+- 如果输出太大无法舒适滚动，将其重定向到文件并将该文件作为上下文提供给 Claw：
   ```bash
   cargo test --workspace 2>&1 | tee logs/test-output.txt
   claw prompt "Use @logs/test-output.txt as context and summarize the failing tests."
   ```
 
-Claw may provide slash commands that inspect workspace state, but those commands do not replace your terminal’s scrollback or shell history.
+## 使用 `@path` 提交仓库文件
 
-## Submit repository files with `@path`
-
-Mention files from the current workspace with `@` paths. Use relative paths from the repository or current working directory:
+使用 `@` 路径提及当前工作区中的文件：
 
 ```text
 Read @src/app.ts and explain the bug.
 Compare @old.md and @new.md.
 Use @logs/error.txt as context and suggest a fix.
-Review @README.md and @docs/navigation-file-context.md for consistency.
 ```
 
-Tips:
+提示：
 
-- Prefer the smallest useful file set. Large directories or logs can consume context quickly.
-- Use exact paths when possible (`@rust/crates/runtime/src/lib.rs`) instead of vague descriptions.
-- For generated logs, save them under a temporary or ignored directory such as `logs/` and reference the file.
-- If the file is outside the repository, copy it into a safe workspace location first or use an app/UI attachment feature if your Claw surface supports attachments.
+- 优先使用最小的有用文件集。
+- 尽可能使用精确路径（`@rust/crates/runtime/src/lib.rs`）而非模糊描述。
+- 对生成的日志，将其保存在临时或被忽略的目录（如 `logs/`）下并引用该文件。
 
-## Browse or inspect files
+## 机密和凭证安全
 
-Claw can answer questions about files you reference, and you can ask it to inspect likely locations:
+不要在提示词、issue 评论、截图或提交的文档中粘贴真实的 API 密钥、OAuth token、私有日志或客户数据。提交文件前：
 
-```text
-Find where provider routing is implemented and summarize the relevant files.
-Read @USAGE.md and tell me where local model setup is documented.
-Search for the command that handles skills install, then explain the control flow.
-```
-
-For deterministic shell-side browsing, ordinary commands still work:
-
-```bash
-find docs -maxdepth 2 -type f | sort
-rg -n "OPENAI_BASE_URL|skills install" USAGE.md docs rust
-sed -n '250,340p' USAGE.md
-```
-
-## Attach external files where supported
-
-Some UI surfaces let you drag and drop or attach files directly. When that is available, use attachments for files that should not be committed to the repo. In terminal-only usage, copy the file into the workspace, reference it with `@path`, then remove it when finished if it was temporary.
-
-## Secret and credential safety
-
-Do not paste real API keys, OAuth tokens, private logs, or customer data into prompts, issue comments, screenshots, or committed docs. Before submitting a file:
-
-- Replace live keys with placeholders such as `sk-ant-REPLACE_ME`, `sk-or-v1-REPLACE_ME`, or `local-dev-token`.
-- Redact bearer tokens, cookies, session IDs, and private base URLs.
-- Prefer minimal reproductions over full production logs.
-- Keep `.env`, key files, and private logs out of git.
-
-If a task requires credentials, describe the variable names and expected shapes instead of sharing the values.
+- 将真实密钥替换为占位符，如 `sk-ant-REPLACE_ME`、`sk-or-v1-REPLACE_ME` 或 `local-dev-token`。
+- 编辑掉 bearer token、cookie、会话 ID 和私有基础 URL。
+- 优先使用最小复现而非完整生产日志。
+- 将 `.env`、密钥文件和私有日志排除在 git 之外。

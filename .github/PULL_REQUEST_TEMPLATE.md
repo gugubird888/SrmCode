@@ -1,17 +1,17 @@
-## Summary
-- TBD
+## 摘要
+- 待定
 
-## Anti-slop triage
-- Classification: <!-- actionable-fix | docs-only | duplicate | generated-slop | unsafe | out-of-scope | needs-maintainer-decision -->
-- Evidence: <!-- issue link, repro command, failing test, docs source, or duplicate PR -->
-- Non-destructive review result: <!-- merge candidate | request changes | close/defer with rationale | needs owner gate -->
+## 反垃圾分类
+- 分类：<!-- actionable-fix | docs-only | duplicate | generated-slop | unsafe | out-of-scope | needs-maintainer-decision -->
+- 证据：<!-- issue 链接、复现命令、失败测试、文档来源或重复 PR -->
+- 非破坏性审查结果：<!-- merge candidate | request changes | close/defer with rationale | needs owner gate -->
 
-## Verification
-- [ ] Targeted tests/docs checks ran, or the gap is explicitly recorded.
-- [ ] `git diff --check` passes.
-- [ ] No live secrets, tokens, private logs, or unrelated generated churn are included.
+## 验证
+- [ ] 已运行针对性测试/文档检查，或已明确记录缺口。
+- [ ] `git diff --check` 通过。
+- [ ] 不包含真实密钥、token、私有日志或无关的生成变动。
 
-## Resolution gate
-- [ ] If this PR resolves an issue, the issue number and fix evidence are linked.
-- [ ] If this PR should not merge, the rejection/defer rationale is evidence-backed and does not rely on vibes.
-- [ ] I did not merge/close remote PRs or issues from an automation lane without owner approval.
+## 解决关卡
+- [ ] 如果此 PR 解决了一个 issue，已链接 issue 编号和修复证据。
+- [ ] 如果此 PR 不应合并，拒绝/推迟的理由有证据支撑，而非主观判断。
+- [ ] 未在无人值守的自动化 lane 中未经所有者批准合并/关闭远程 PR 或 issue。

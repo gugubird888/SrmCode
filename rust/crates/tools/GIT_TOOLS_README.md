@@ -1,157 +1,90 @@
-# Git-Aware Context Tools
+# Git 感知的上下文工具
 
-Adds five native git tools to claw-code that provide structured, read-only access to repository state. These replace ad-hoc `git` commands via bash with purpose-built tool definitions the model can discover and invoke directly.
+为 claw-code 添加五个原生 git 工具，提供结构化的只读仓库状态访问。这些工具用专门构建的工具定义替代通过 bash 的临时 `git` 命令，模型可以直接发现和调用。
 
-## Tools
+## 工具
 
 ### GitStatus
 
-Show the working tree status (branch, staged, unstaged, untracked). Equivalent to `git status --short --branch`.
+显示工作树状态（分支、已暂存、未暂存、未跟踪）。等效于 `git status --short --branch`。
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `short` | boolean | no | `true` | Use `--short --branch` format for concise output |
-
-**Example input:**
-```json
-{}
-```
-
-**Example output:**
-```json
-{
-  "output": "## feat/git-aware-tools...upstream/main [ahead 1]\nM rust/crates/tools/src/lib.rs"
-}
-```
-
----
+| 参数 | 类型 | 必需 | 默认值 | 描述 |
+|------|------|------|--------|------|
+| `short` | boolean | 否 | `true` | 使用 `--short --branch` 格式输出简洁结果 |
 
 ### GitDiff
 
-Show changes between commits, the index, and the working tree. Supports staged changes, specific paths, commit ranges, and comparing two commits.
+显示提交之间、索引和工作树的变更。支持暂存变更、特定路径、提交范围以及比较两个提交。
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `staged` | boolean | no | `false` | Show staged changes (`git diff --cached`) |
-| `commit` | string | no | — | Commit hash, tag, or branch to diff against |
-| `commit2` | string | no | — | Second commit for range diff (`commit...commit2`) |
-| `path` | string | no | — | File path to restrict the diff to |
-
-**Example inputs:**
-```json
-{}
-```
-```json
-{ "staged": true }
-```
-```json
-{ "commit": "HEAD~3", "path": "rust/crates/tools/src/lib.rs" }
-```
-```json
-{ "commit": "main", "commit2": "feat/git-aware-tools" }
-```
-
----
+| 参数 | 类型 | 必需 | 默认值 | 描述 |
+|------|------|------|--------|------|
+| `staged` | boolean | 否 | `false` | 显示暂存变更 |
+| `commit` | string | 否 | — | 要 diff 的提交哈希/标签/分支 |
+| `commit2` | string | 否 | — | 用于范围 diff 的第二个提交 |
+| `path` | string | 否 | — | 限制 diff 的文件路径 |
 
 ### GitLog
 
-Show commit history. Supports limiting count, filtering by author/date/path, and oneline format.
+显示提交历史。支持限制数量、按作者/日期/路径过滤以及 oneline 格式。
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `count` | integer | no | `20` | Maximum number of commits to return |
-| `oneline` | boolean | no | `false` | Use `--oneline` format (hash + subject only) |
-| `author` | string | no | — | Filter commits by author pattern |
-| `since` | string | no | — | Filter commits since date (e.g. `"2024-01-01"` or `"2.weeks"`) |
-| `until` | string | no | — | Filter commits until date |
-| `path` | string | no | — | File or directory path to filter commits by |
-
-**Example inputs:**
-```json
-{ "count": 5, "oneline": true }
-```
-```json
-{ "author": "alice", "since": "1.week", "path": "src/main.rs" }
-```
-
----
+| 参数 | 类型 | 必需 | 默认值 | 描述 |
+|------|------|------|--------|------|
+| `count` | integer | 否 | `20` | 返回的最大提交数 |
+| `oneline` | boolean | 否 | `false` | 使用 `--oneline` 格式 |
+| `author` | string | 否 | — | 按作者模式过滤 |
+| `since` | string | 否 | — | 过滤自某日期以来的提交 |
+| `until` | string | 否 | — | 过滤至某日期为止的提交 |
+| `path` | string | 否 | — | 过滤的文件或目录路径 |
 
 ### GitShow
 
-Show a commit, tag, or tree object with its diff. Supports showing a specific file at a commit and stat-only mode.
+显示提交、标签或树对象及其 diff。支持在特定提交处显示特定文件和仅统计模式。
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `commit` | string | **yes** | — | Commit hash, tag, or branch ref to show |
-| `path` | string | no | — | Show only this file at the given commit (`commit:path` syntax) |
-| `stat` | boolean | no | `false` | Show diffstat summary instead of full diff |
-
-**Example inputs:**
-```json
-{ "commit": "HEAD" }
-```
-```json
-{ "commit": "abc1234", "stat": true }
-```
-```json
-{ "commit": "main", "path": "src/lib.rs" }
-```
-
----
+| 参数 | 类型 | 必需 | 默认值 | 描述 |
+|------|------|------|--------|------|
+| `commit` | string | **是** | — | 要显示的提交哈希/标签/分支引用 |
+| `path` | string | 否 | — | 在给定提交处仅显示此文件 |
+| `stat` | boolean | 否 | `false` | 显示 diffstat 摘要而非完整 diff |
 
 ### GitBlame
 
-Show what revision and author last modified each line of a file. Supports line range filtering.
+显示每行文件最后被哪个修订版本和作者修改。支持行范围过滤。
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `path` | string | **yes** | — | File path to blame |
-| `start_line` | integer | no | — | Start of line range (1-based) |
-| `end_line` | integer | no | — | End of line range (1-based) |
+| 参数 | 类型 | 必需 | 默认值 | 描述 |
+|------|------|------|--------|------|
+| `path` | string | **是** | — | 要 blame 的文件路径 |
+| `start_line` | integer | 否 | — | 行范围起始（基于 1） |
+| `end_line` | integer | 否 | — | 行范围结束（基于 1） |
 
-**Example inputs:**
-```json
-{ "path": "src/main.rs" }
-```
-```json
-{ "path": "src/main.rs", "start_line": 100, "end_line": 150 }
-```
+## 架构
 
----
+所有五个工具遵循相同的模式：
 
-## Architecture
+1. **ToolSpec** — 定义工具名称、描述、JSON 输入 schema 和 `PermissionMode::ReadOnly`
+2. **Input struct** — 派生 `Deserialize`，可选字段带 `#[serde(default)]`
+3. **Run 函数** — 构建 git 参数，调用 `git_stdout()`，通过 `to_pretty_json()` 包装结果
+4. **Dispatch** — 像所有其他工具一样在 `execute_tool_with_enforcer()` 中匹配
 
-All five tools follow the same pattern:
+## 为什么需要原生 git 工具？
 
-1. **ToolSpec** — Defines the tool name, description, JSON input schema, and `PermissionMode::ReadOnly`
-2. **Input struct** — Derives `Deserialize` with `#[serde(default)]` on optional fields
-3. **Run function** — Builds git arguments, calls `git_stdout()`, wraps result in JSON via `to_pretty_json()`
-4. **Dispatch** — Matched in `execute_tool_with_enforcer()` like all other tools
+在此变更之前，模型必须使用 `bash` 工具进行 git 操作，存在若干缺点：
 
-The existing `git_stdout(args: &[&str]) -> Option<String>` helper (at `tools/src/lib.rs`) handles running the `git` subprocess and returning trimmed stdout. Git tools simply construct the right arguments and delegate to this helper.
+- **无结构化输出** — Bash 返回原始文本，模型必须解析
+- **过度授权** — Bash 即使是只读 git 命令也需要 `DangerFullAccess`
+- **无法发现** — 模型无法通过 `ToolSearch` 搜索支持 git 的工具
+- **不一致** — 每次调用可能使用不同的标志或格式
 
-## Why native git tools?
+使用原生 git 工具：
 
-Before this PR, the model had to use the `bash` tool for git operations, which has several drawbacks:
+- 所有五个都是 `ReadOnly` — 在受限权限模式下安全
+- 结构化 JSON 输出 — 一致、可解析的结果
+- 可通过 `ToolSearch` 发现，关键词如 "git"、"diff"、"blame"
+- 模型友好的描述说明何时使用每个工具而非 bash
 
-- **No structured output** — Bash returns raw text that the model must parse
-- **Over-permissioned** — Bash requires `DangerFullAccess` even for read-only git commands
-- **No discoverability** — The model can't search for git-capable tools via `ToolSearch`
-- **Inconsistent** — Each invocation may use different flags or formatting
-
-With native git tools:
-
-- All five are `ReadOnly` — safe in restricted permission modes
-- Structured JSON output — consistent, parseable results
-- Discoverable via `ToolSearch` with keywords like "git", "diff", "blame"
-- Model-friendly descriptions explain when to use each tool vs bash
-
-## Testing
+## 测试
 
 ```bash
 cd rust
 cargo build --release
 cargo test -p tools
 ```
-
-The 3 pre-existing test failures (agent_fake_runner, agent_persists_handoff, worker_create_merges_config) are unrelated to this change — they fail due to local settings.json incompatibilities.

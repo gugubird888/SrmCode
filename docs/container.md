@@ -1,23 +1,20 @@
-# Container-first claw-code workflows
+# 容器优先的 Claw Code 工作流
 
-This repo already had **container detection** in the Rust runtime before this document was added:
+Rust 运行时本身已具备**容器检测**能力：
 
-- `rust/crates/runtime/src/sandbox.rs` detects Docker/Podman/container markers such as `/.dockerenv`, `/run/.containerenv`, matching env vars, and `/proc/1/cgroup` hints.
-- `rust/crates/rusty-claude-cli/src/main.rs` exposes that state through the `claw sandbox` / `cargo run -p rusty-claude-cli -- sandbox` report.
-- `.github/workflows/rust-ci.yml` runs on `ubuntu-latest`, but it does **not** define a Docker or Podman container job.
-- Before this change, the repo did **not** have a checked-in `Dockerfile`, `Containerfile`, or `.devcontainer/` config.
+- `rust/crates/runtime/src/sandbox.rs` 检测 Docker/Podman/容器标记（`/.dockerenv`、`/run/.containerenv`、cgroup 提示）。
+- `rust/crates/rusty-claude-cli/src/main.rs` 通过 `claw sandbox` 暴露该状态。
+- 本文档添加一个小的 `Containerfile`，为 Docker 和 Podman 用户提供规范的容器工作流。
 
-This document adds a small checked-in `Containerfile` so Docker and Podman users have one canonical container workflow.
+## 容器镜像的用途
 
-## What the checked-in container image is for
+根目录的 `Containerfile` 提供一个可复用的 Rust 构建/测试 shell，包含此工作区常用软件包（`git`、`pkg-config`、`libssl-dev`、证书）。
 
-The root [`../Containerfile`](../Containerfile) gives you a reusable Rust build/test shell with the extra packages this workspace commonly needs (`git`, `pkg-config`, `libssl-dev`, certificates).
+它**不**将仓库复制到镜像中。推荐流程是将你的 checkout bind-mount 到 `/workspace`，使编辑保留在宿主机上。
 
-It does **not** copy the repository into the image. Instead, the recommended flow is to bind-mount your checkout into `/workspace` so edits stay on the host.
+## 构建镜像
 
-## Build the image
-
-From the repository root:
+从仓库根目录：
 
 ### Docker
 
@@ -31,9 +28,7 @@ docker build -t claw-code-dev -f Containerfile .
 podman build -t claw-code-dev -f Containerfile .
 ```
 
-## Run `cargo test --workspace` in the container
-
-These commands mount the repo, keep Cargo build artifacts out of the working tree, and run from the Rust workspace at `rust/`.
+## 在容器中运行 `cargo test --workspace`
 
 ### Docker
 
@@ -57,9 +52,7 @@ podman run --rm -it \
   cargo test --workspace
 ```
 
-If you want a fully clean rebuild, add `cargo clean &&` before `cargo test --workspace`.
-
-## Open a shell in the container
+## 在容器中打开 shell
 
 ### Docker
 
@@ -81,7 +74,7 @@ podman run --rm -it \
   claw-code-dev
 ```
 
-Inside the shell:
+在 shell 内：
 
 ```bash
 cargo build --workspace
@@ -90,13 +83,7 @@ cargo run -p rusty-claude-cli -- --help
 cargo run -p rusty-claude-cli -- sandbox
 ```
 
-The `sandbox` command is a useful sanity check: inside Docker or Podman it should report `In container true` and list the markers the runtime detected.
-
-## Bind-mount this repo and another repo at the same time
-
-If you want to run `claw` against a second checkout while keeping `claw-code` itself mounted read-write:
-
-### Docker
+## 同时 bind-mount 本仓库和另一个仓库
 
 ```bash
 docker run --rm -it \
@@ -107,26 +94,15 @@ docker run --rm -it \
   claw-code-dev
 ```
 
-### Podman
-
-```bash
-podman run --rm -it \
-  -v "$PWD":/workspace:Z \
-  -v "$HOME/src/other-repo":/repo:Z \
-  -e CARGO_TARGET_DIR=/tmp/claw-target \
-  -w /workspace/rust \
-  claw-code-dev
-```
-
-Then, for example:
+然后：
 
 ```bash
 cargo run -p rusty-claude-cli -- prompt "summarize /repo"
 ```
 
-## Notes
+## 注意事项
 
-- Docker and Podman use the same checked-in `Containerfile`.
-- The `:Z` suffix in the Podman examples is for SELinux relabeling; keep it on Fedora/RHEL-class hosts.
-- Running with `CARGO_TARGET_DIR=/tmp/claw-target` avoids leaving container-owned `target/` artifacts in your bind-mounted checkout.
-- For non-container local development, keep using [`../USAGE.md`](../USAGE.md) and [`../rust/README.md`](../rust/README.md).
+- Docker 和 Podman 使用相同的 `Containerfile`。
+- Podman 示例中的 `:Z` 后缀用于 SELinux 重新标记；在 Fedora/RHEL 类主机上保留。
+- 使用 `CARGO_TARGET_DIR=/tmp/claw-target` 可避免在 bind-mount 的 checkout 中留下容器拥有的 `target/` 制品。
+- 非容器本地开发继续使用 [`USAGE.md`](../USAGE.md) 和 [`rust/README.md`](../rust/README.md)。
